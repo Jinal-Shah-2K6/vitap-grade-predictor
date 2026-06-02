@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Grades — VIT-AP</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0a0a0f; --surface:#13131a; --border:#2a2a3d; --accent:#6c63ff; --success:#00d4aa; --text:#e8e8f0; --muted:#6b6b80; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Space Grotesk',sans-serif; min-height:100vh; }
+  .bg-grid { position:fixed; inset:0; z-index:0; background-image:linear-gradient(rgba(108,99,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(108,99,255,0.02) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; }
+  nav { position:relative; z-index:10; display:flex; align-items:center; justify-content:space-between; padding:20px 40px; border-bottom:1px solid var(--border); background:rgba(10,10,15,0.8); backdrop-filter:blur(12px); }
+  .nav-logo { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:2px; }
+  .nav-right { display:flex; gap:20px; align-items:center; }
+  .reg-badge { background:rgba(108,99,255,0.12); border:1px solid rgba(108,99,255,0.25); border-radius:8px; padding:6px 14px; font-size:13px; font-family:'JetBrains Mono',monospace; color:var(--accent); }
+  .back { color:var(--muted); font-size:13px; text-decoration:none; }
+
+  .main { position:relative; z-index:1; max-width:800px; margin:0 auto; padding:60px 40px; }
+  h1 { font-size:32px; font-weight:700; margin-bottom:8px; }
+  .sub { color:var(--muted); font-size:15px; margin-bottom:40px; }
+
+  .empty { text-align:center; padding:60px 20px; color:var(--muted); }
+  .empty a { color:var(--accent); text-decoration:none; }
+
+  .subject-card {
+    background:var(--surface); border:1px solid var(--border); border-radius:20px;
+    padding:28px 32px; margin-bottom:16px;
+    animation:fadeUp 0.5s ease both;
+    transition:border-color 0.2s;
+  }
+  .subject-card:hover { border-color:rgba(108,99,255,0.3); }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  .card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; }
+  .subject-name { font-size:18px; font-weight:600; }
+  .faculty-tag { font-size:12px; color:var(--muted); margin-top:4px; font-family:'JetBrains Mono',monospace; }
+  .grade-chip {
+    font-size:28px; font-weight:700; font-family:'JetBrains Mono',monospace;
+    width:52px; height:52px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+  }
+  .chip-S { background:rgba(255,215,0,0.1); color:#ffd700; }
+  .chip-A { background:rgba(0,212,170,0.1); color:var(--success); }
+  .chip-B { background:rgba(108,99,255,0.1); color:var(--accent); }
+  .chip-C { background:rgba(255,179,71,0.1); color:#ffb347; }
+  .chip-D { background:rgba(255,153,153,0.1); color:#ff9999; }
+  .chip-E { background:rgba(255,101,132,0.1); color:#ff6584; }
+  .chip-F { background:rgba(255,68,68,0.1); color:#ff4444; }
+  .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .stat { background:var(--bg); border-radius:10px; padding:12px; text-align:center; }
+  .stat-val { font-size:16px; font-weight:600; font-family:'JetBrains Mono',monospace; }
+  .stat-key { font-size:11px; color:var(--muted); margin-top:3px; text-transform:uppercase; letter-spacing:0.5px; }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<nav>
+  <div class="nav-logo">VIT-AP · GRADE PREDICTOR</div>
+  <div class="nav-right">
+    <span class="reg-badge">{{ student_id }}</span>
+    <a href="/dashboard" class="back">← Dashboard</a>
+  </div>
+</nav>
+
+<div class="main">
+  <h1>My Grade Report</h1>
+  <p class="sub">{{ submissions|length }} subject{{ 's' if submissions|length != 1 else '' }} submitted</p>
+
+  {% if not submissions %}
+  <div class="empty">
+    <p style="font-size:40px;margin-bottom:16px;">📭</p>
+    <p>No submissions yet.</p>
+    <p style="margin-top:8px;"><a href="/add">Add your first subject →</a></p>
+  </div>
+  {% endif %}
+
+  {% for s in submissions %}
+  <div class="subject-card" style="animation-delay: {{ loop.index0 * 0.08 }}s">
+    <div class="card-header">
+      <div>
+        <div class="subject-name">{{ s.subject }}</div>
+        <div class="faculty-tag">Faculty: {{ s.faculty_id }}</div>
+      </div>
+      <div class="grade-chip chip-{{ s.grade }}">{{ s.grade }}</div>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-val">{{ s.marks }}</div><div class="stat-key">Your marks</div></div>
+      <div class="stat"><div class="stat-val">{{ s.mean }}</div><div class="stat-key">Class mean</div></div>
+      <div class="stat"><div class="stat-val">{{ s.sd }}</div><div class="stat-key">Std dev</div></div>
+      <div class="stat"><div class="stat-val">{{ s.count }}</div><div class="stat-key">Submissions</div></div>
+    </div>
+  </div>
+  {% endfor %}
+
+  {% if submissions %}
+  <div style="text-align:center;margin-top:24px;">
+    <a href="/add" style="color:var(--accent);text-decoration:none;font-size:14px;">+ Add another subject</a>
+  </div>
+  {% endif %}
+</div>
+</body>
+</html>

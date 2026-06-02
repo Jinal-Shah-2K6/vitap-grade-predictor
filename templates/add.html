@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Marks — VIT-AP</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0a0a0f; --surface:#13131a; --border:#2a2a3d; --accent:#6c63ff; --accent2:#ff6584; --success:#00d4aa; --text:#e8e8f0; --muted:#6b6b80; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Space Grotesk',sans-serif; min-height:100vh; }
+  .bg-grid { position:fixed; inset:0; z-index:0; background-image:linear-gradient(rgba(108,99,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(108,99,255,0.02) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; }
+  nav { position:relative; z-index:10; display:flex; align-items:center; justify-content:space-between; padding:20px 40px; border-bottom:1px solid var(--border); background:rgba(10,10,15,0.8); backdrop-filter:blur(12px); }
+  .nav-logo { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:2px; }
+  .nav-right { display:flex; gap:20px; align-items:center; }
+  .reg-badge { background:rgba(108,99,255,0.12); border:1px solid rgba(108,99,255,0.25); border-radius:8px; padding:6px 14px; font-size:13px; font-family:'JetBrains Mono',monospace; color:var(--accent); }
+  .back { color:var(--muted); font-size:13px; text-decoration:none; }
+  .back:hover { color:var(--text); }
+
+  .main { position:relative; z-index:1; max-width:600px; margin:0 auto; padding:60px 40px; }
+  h1 { font-size:32px; font-weight:700; margin-bottom:8px; }
+  .sub { color:var(--muted); font-size:15px; margin-bottom:40px; }
+
+  label { display:block; font-size:12px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+  input {
+    width:100%; background:var(--bg); border:1px solid var(--border); border-radius:12px;
+    padding:14px 16px; color:var(--text); font-family:'Space Grotesk',sans-serif; font-size:15px;
+    margin-bottom:24px; outline:none; transition:border-color 0.2s,box-shadow 0.2s;
+  }
+  input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(108,99,255,0.15); }
+  .btn { width:100%; padding:15px; background:var(--accent); border:none; border-radius:12px; color:#fff; font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:600; cursor:pointer; transition:transform 0.15s,box-shadow 0.15s; }
+  .btn:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(108,99,255,0.35); }
+
+  .result-box { margin-top:40px; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:32px; animation:fadeUp 0.5s ease both; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  .grade-display { text-align:center; margin-bottom:28px; }
+  .grade-letter {
+    font-size:80px; font-weight:700; line-height:1;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .grade-S { color:#ffd700; }
+  .grade-A { color:var(--success); }
+  .grade-B { color:#6c63ff; }
+  .grade-C { color:#ffb347; }
+  .grade-D { color:#ff9999; }
+  .grade-E { color:var(--accent2); }
+  .grade-F { color:#ff4444; }
+  .grade-label { color:var(--muted); font-size:14px; margin-top:6px; }
+  .stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:24px; }
+  .stat { background:var(--bg); border-radius:12px; padding:14px; text-align:center; }
+  .stat-val { font-size:20px; font-weight:600; font-family:'JetBrains Mono',monospace; }
+  .stat-key { font-size:11px; color:var(--muted); margin-top:4px; text-transform:uppercase; letter-spacing:1px; }
+  .ranges { border-top:1px solid var(--border); padding-top:20px; }
+  .ranges h3 { font-size:13px; font-weight:600; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-bottom:14px; }
+  .range-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(42,42,61,0.5); font-size:14px; }
+  .range-row:last-child { border-bottom:none; }
+  .range-grade { font-family:'JetBrains Mono',monospace; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<nav>
+  <div class="nav-logo">VIT-AP · GRADE PREDICTOR</div>
+  <div class="nav-right">
+    <span class="reg-badge">{{ student_id }}</span>
+    <a href="/dashboard" class="back">← Dashboard</a>
+  </div>
+</nav>
+
+<div class="main">
+  <h1>Add Marks</h1>
+  <p class="sub">Submit your marks to get a grade prediction</p>
+
+  <form method="POST">
+    <label>Faculty ID</label>
+    <input type="text" name="faculty_id" placeholder="e.g. DR001" required value="{{ result.faculty_id if result else '' }}">
+
+    <label>Subject</label>
+    <input type="text" name="subject" placeholder="e.g. Machine Learning" required value="{{ result.subject if result else '' }}">
+
+    <label>Marks Obtained</label>
+    <input type="number" step="0.01" min="0" max="100" name="marks" placeholder="e.g. 78.5" required>
+
+    <button class="btn" type="submit">Predict My Grade →</button>
+  </form>
+
+  {% if result %}
+  <div class="result-box">
+    <div class="grade-display">
+      <div class="grade-letter grade-{{ result.grade }}">{{ result.grade }}</div>
+      <div class="grade-label">Predicted Grade for {{ result.subject }}</div>
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-val">{{ result.marks }}</div>
+        <div class="stat-key">Your Marks</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">{{ result.mean }}</div>
+        <div class="stat-key">Class Mean</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">{{ result.sd }}</div>
+        <div class="stat-key">Std Dev</div>
+      </div>
+    </div>
+
+    <div class="ranges">
+      <h3>Grade Boundaries</h3>
+      <div class="range-row"><span class="range-grade grade-S">S</span><span>≥ {{ result.s_b }}</span></div>
+      <div class="range-row"><span class="range-grade grade-A">A</span><span>≥ {{ result.a_b }}</span></div>
+      <div class="range-row"><span class="range-grade grade-B">B</span><span>≥ {{ result.b_b }}</span></div>
+      <div class="range-row"><span class="range-grade grade-C">C</span><span>≥ {{ result.c_b }}</span></div>
+      <div class="range-row"><span class="range-grade grade-D">D</span><span>≥ {{ result.d_b }}</span></div>
+      <div class="range-row"><span class="range-grade grade-E">E</span><span>≥ {{ result.e_b }}</span></div>
+      <div class="range-row"><span class="range-grade grade-F">F</span><span>Below {{ result.e_b }}</span></div>
+    </div>
+
+    <p style="text-align:center;margin-top:20px;font-size:13px;color:var(--muted);">Based on {{ result.submissions }} submission{{ 's' if result.submissions != 1 else '' }} for this subject</p>
+  </div>
+  {% endif %}
+</div>
+</body>
+</html>
