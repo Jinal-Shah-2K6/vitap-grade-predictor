@@ -4,8 +4,9 @@ import json, os, statistics, hashlib
 app = Flask(__name__)
 app.secret_key = "vitap_grade_secret_2024"
 
-DATA_FILE  = "database/data.json"
-USERS_FILE = "database/users.json"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE  = os.path.join(BASE_DIR,"database","data.json")
+USERS_FILE  = os.path.join(BASE_DIR,"database","users.json")
 
 for folder in ["database"]:
     if not os.path.exists(folder):
