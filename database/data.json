@@ -1,1 +1,8 @@
-[]
+[
+    {
+        "student_id": "24BCE8063",
+        "faculty_id": "1",
+        "subject": "abc",
+        "marks": 100.0
+    }
+]

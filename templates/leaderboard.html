@@ -6,7 +6,7 @@
 <title>Leaderboard — VIT-AP</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  :root { --bg:#0a0a0f; --surface:#13131a; --border:#2a2a3d; --accent:#6c63ff; --success:#00d4aa; --gold:#ffd700; --silver:#c0c0c0; --bronze:#cd7f32; --text:#e8e8f0; --muted:#6b6b80; }
+  :root { --bg:#0a0a0f; --surface:#13131a; --border:#2a2a3d; --accent:#6c63ff; --success:#00d4aa; --gold:#ffd700; --silver:#c0c0c0; --bronze:#cd7f32; --text:#e8e8f0; --muted:#6b6b80; --accent2:#ff6584; }
   * { margin:0; padding:0; box-sizing:border-box; }
   body { background:var(--bg); color:var(--text); font-family:'Space Grotesk',sans-serif; min-height:100vh; }
   .bg-grid { position:fixed; inset:0; z-index:0; background-image:linear-gradient(rgba(108,99,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(108,99,255,0.02) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; }
@@ -16,26 +16,33 @@
   .reg-badge { background:rgba(108,99,255,0.12); border:1px solid rgba(108,99,255,0.25); border-radius:8px; padding:6px 14px; font-size:13px; font-family:'JetBrains Mono',monospace; color:var(--accent); }
   .back { color:var(--muted); font-size:13px; text-decoration:none; }
   .back:hover { color:var(--text); }
-  .main { position:relative; z-index:1; max-width:700px; margin:0 auto; padding:60px 40px; }
+  .main { position:relative; z-index:1; max-width:750px; margin:0 auto; padding:60px 40px; }
   h1 { font-size:32px; font-weight:700; margin-bottom:8px; }
   .sub { color:var(--muted); font-size:15px; margin-bottom:40px; }
-  .board { display:flex; flex-direction:column; gap:10px; }
-  .row { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px 24px; display:flex; align-items:center; gap:16px; animation:fadeUp 0.4s ease both; transition:border-color 0.2s; }
+
+  .faculty-section { margin-bottom:40px; animation:fadeUp 0.5s ease both; }
+  .faculty-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .faculty-tag { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; background:rgba(108,99,255,0.12); border:1px solid rgba(108,99,255,0.25); border-radius:8px; padding:6px 14px; color:var(--accent); }
+  .you-badge { font-size:11px; background:rgba(0,212,170,0.1); border:1px solid rgba(0,212,170,0.25); border-radius:6px; padding:4px 10px; color:var(--success); }
+  .subjects-list { font-size:12px; color:var(--muted); margin-bottom:14px; }
+
+  .board { display:flex; flex-direction:column; gap:8px; }
+  .row { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 20px; display:flex; align-items:center; gap:14px; transition:border-color 0.2s; }
   .row:hover { border-color:rgba(108,99,255,0.2); }
   .row.me { border-color:rgba(108,99,255,0.5); background:rgba(108,99,255,0.05); }
   @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-  .rank { font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; width:36px; text-align:center; }
+  .rank { font-family:'JetBrains Mono',monospace; font-size:16px; font-weight:700; width:32px; text-align:center; }
   .rank-1 { color:var(--gold); }
   .rank-2 { color:var(--silver); }
   .rank-3 { color:var(--bronze); }
   .rank-other { color:var(--muted); }
-  .medal { font-size:20px; width:28px; text-align:center; }
-  .name { flex:1; font-size:15px; font-weight:500; }
+  .medal { font-size:18px; width:24px; text-align:center; }
+  .name { flex:1; font-size:14px; font-weight:500; }
   .name.me { color:var(--accent); }
   .right { text-align:right; }
-  .avg-pts { font-size:18px; font-weight:600; font-family:'JetBrains Mono',monospace; color:var(--success); }
-  .subj-count { font-size:12px; color:var(--muted); margin-top:2px; }
-  .privacy-note { text-align:center; margin-top:24px; font-size:12px; color:var(--muted); }
+  .avg-pts { font-size:16px; font-weight:600; font-family:'JetBrains Mono',monospace; color:var(--success); }
+  .subj-count { font-size:11px; color:var(--muted); margin-top:2px; }
+  .privacy-note { text-align:center; margin-top:32px; font-size:12px; color:var(--muted); }
   .empty { text-align:center; padding:60px; color:var(--muted); }
 </style>
 </head>
@@ -48,29 +55,43 @@
     <a href="/dashboard" class="back">← Dashboard</a>
   </div>
 </nav>
+
 <div class="main">
   <h1>🏆 Leaderboard</h1>
-  <p class="sub">Ranked by average grade points · All identities anonymous</p>
+  <p class="sub">Ranked by average grade points within each faculty</p>
 
-  {% if leaderboard %}
-  <div class="board">
-    {% for entry in leaderboard %}
-    <div class="row {% if entry.is_me %}me{% endif %}" style="animation-delay:{{ loop.index0 * 0.05 }}s">
-      <div class="rank {% if entry.rank == 1 %}rank-1{% elif entry.rank == 2 %}rank-2{% elif entry.rank == 3 %}rank-3{% else %}rank-other{% endif %}">
-        #{{ entry.rank }}
+  {% if faculty_boards %}
+    {% for board in faculty_boards %}
+    <div class="faculty-section" style="animation-delay:{{ loop.index0 * 0.1 }}s">
+      <div class="faculty-header">
+        <span class="faculty-tag">{{ board.faculty_id }}</span>
+        {% if board.i_am_here %}
+        <span class="you-badge">✓ You're in this class</span>
+        {% endif %}
       </div>
-      <div class="medal">
-        {% if entry.rank == 1 %}🥇{% elif entry.rank == 2 %}🥈{% elif entry.rank == 3 %}🥉{% else %}·{% endif %}
-      </div>
-      <div class="name {% if entry.is_me %}me{% endif %}">{{ entry.display }}</div>
-      <div class="right">
-        <div class="avg-pts">{{ entry.avg_points }}</div>
-        <div class="subj-count">{{ entry.subjects }} subject{{ 's' if entry.subjects != 1 else '' }}</div>
+      <div class="subjects-list">Subjects: {{ board.subjects | join(', ') }}</div>
+
+      <div class="board">
+        {% for entry in board.ranked %}
+        <div class="row {% if entry.is_me %}me{% endif %}">
+          <div class="rank {% if entry.rank == 1 %}rank-1{% elif entry.rank == 2 %}rank-2{% elif entry.rank == 3 %}rank-3{% else %}rank-other{% endif %}">
+            #{{ entry.rank }}
+          </div>
+          <div class="medal">
+            {% if entry.rank == 1 %}🥇{% elif entry.rank == 2 %}🥈{% elif entry.rank == 3 %}🥉{% else %}·{% endif %}
+          </div>
+          <div class="name {% if entry.is_me %}me{% endif %}">{{ entry.display }}</div>
+          <div class="right">
+            <div class="avg-pts">{{ entry.avg_points }}</div>
+            <div class="subj-count">{{ entry.subjects }} subject{{ 's' if entry.subjects != 1 else '' }}</div>
+          </div>
+        </div>
+        {% endfor %}
       </div>
     </div>
     {% endfor %}
-  </div>
-  <p class="privacy-note">🔒 Only you can see your own registration number. Everyone else is anonymous.</p>
+
+    <p class="privacy-note">🔒 Only you can see your own registration number. Everyone else is anonymous.</p>
 
   {% else %}
   <div class="empty">

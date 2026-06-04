@@ -248,7 +248,6 @@ def cgpa():
 
 
 # ── LEADERBOARD ───────────────────────────────────────
-
 @app.route("/leaderboard")
 def leaderboard():
     if "student_id" not in session:
@@ -256,44 +255,65 @@ def leaderboard():
 
     data = load_json(DATA_FILE)
 
-    student_scores = {}
-    for entry in data:
-        sid = entry.get("student_id")
-        if not sid:
-            continue
+    # Get all unique faculty IDs
+    faculty_ids = sorted(set(e["faculty_id"] for e in data if e.get("faculty_id")))
 
-        subject_marks = [
-            e["marks"] for e in data
-            if e["faculty_id"] == entry["faculty_id"] and e["subject"] == entry["subject"]
-        ]
-        mean_marks = round(statistics.mean(subject_marks), 2)
-        sd = round(statistics.stdev(subject_marks), 2) if len(subject_marks) > 1 else 0
-        grade, *_ = compute_grade(entry["marks"], mean_marks, sd)
+    # Build leaderboard per faculty
+    faculty_boards = []
 
-        if sid not in student_scores:
-            student_scores[sid] = {"points": [], "student_id": sid}
-        student_scores[sid]["points"].append(GRADE_POINTS[grade])
+    for fid in faculty_ids:
+        # All entries for this faculty
+        faculty_entries = [e for e in data if e.get("faculty_id") == fid]
 
-    leaderboard_data = []
-    for sid, val in student_scores.items():
-        avg = round(sum(val["points"]) / len(val["points"]), 2)
-        leaderboard_data.append({
-            "student_id":  sid,
-            "avg_points":  avg,
-            "subjects":    len(val["points"]),
-            "is_me":       sid == session["student_id"]
+        # Get unique subjects under this faculty
+        subjects = sorted(set(e["subject"] for e in faculty_entries))
+
+        # Per student scores within this faculty
+        student_scores = {}
+        for entry in faculty_entries:
+            sid = entry.get("student_id")
+            if not sid:
+                continue
+
+            subject_marks = [
+                e["marks"] for e in data
+                if e["faculty_id"] == fid and e["subject"] == entry["subject"]
+            ]
+            mean_marks = round(statistics.mean(subject_marks), 2)
+            sd = round(statistics.stdev(subject_marks), 2) if len(subject_marks) > 1 else 0
+            grade, *_ = compute_grade(entry["marks"], mean_marks, sd)
+
+            if sid not in student_scores:
+                student_scores[sid] = {"points": [], "student_id": sid}
+            student_scores[sid]["points"].append(GRADE_POINTS[grade])
+
+        # Build ranked list for this faculty
+        ranked = []
+        for sid, val in student_scores.items():
+            avg = round(sum(val["points"]) / len(val["points"]), 2)
+            ranked.append({
+                "student_id":  sid,
+                "avg_points":  avg,
+                "subjects":    len(val["points"]),
+                "is_me":       sid == session["student_id"]
+            })
+
+        ranked.sort(key=lambda x: x["avg_points"], reverse=True)
+
+        for i, entry in enumerate(ranked):
+            entry["rank"] = i + 1
+            entry["display"] = (entry["student_id"] + " (You)") if entry["is_me"] else f"Student #{i+1}"
+
+        # Only include faculties where current student has submitted
+        student_in_faculty = any(e.get("student_id") == session["student_id"] for e in faculty_entries)
+
+        faculty_boards.append({
+            "faculty_id": fid,
+            "subjects":   subjects,
+            "ranked":     ranked,
+            "i_am_here":  student_in_faculty
         })
-
-    leaderboard_data.sort(key=lambda x: x["avg_points"], reverse=True)
-
-    for i, entry in enumerate(leaderboard_data):
-        entry["rank"] = i + 1
-        entry["display"] = (entry["student_id"] + " (You)") if entry["is_me"] else f"Student #{i+1}"
 
     return render_template("leaderboard.html",
         student_id=session["student_id"],
-        leaderboard=leaderboard_data)
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
+        faculty_boards=faculty_boards)
