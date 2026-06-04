@@ -4,11 +4,11 @@ import json, os, statistics, hashlib
 app = Flask(__name__)
 app.secret_key = "vitap_grade_secret_2024"
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_FILE  = os.path.join(BASE_DIR,"database","data.json")
-USERS_FILE  = os.path.join(BASE_DIR,"database","users.json")
+BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE  = os.path.join(BASE_DIR, "database", "data.json")
+USERS_FILE = os.path.join(BASE_DIR, "database", "users.json")
 
-for folder in ["database"]:
+for folder in [os.path.join(BASE_DIR, "database")]:
     if not os.path.exists(folder):
         os.makedirs(folder)
 
@@ -36,14 +36,12 @@ def save_json(path, data):
 
 
 def compute_grade(marks, mean_marks, sd):
-    s_boundary = max(mean_marks + 1.5 * sd, 90)
+    s_boundary = max(mean_marks + 1.5 * sd, 80)   # S never starts below 80
     a_boundary = mean_marks + 0.5 * sd
     b_boundary = mean_marks - 0.5 * sd
     c_boundary = mean_marks - 1.0 * sd
     d_boundary = mean_marks - 1.5 * sd
-    e_boundary = mean_marks - 2.0 * sd
-    if e_boundary > 50:
-        e_boundary = 50
+    e_boundary = min(mean_marks - 2.0 * sd, 50)   # F never starts above 50
 
     if marks >= s_boundary:    grade = "S"
     elif marks >= a_boundary:  grade = "A"
@@ -55,6 +53,9 @@ def compute_grade(marks, mean_marks, sd):
 
     return grade, round(s_boundary,2), round(a_boundary,2), round(b_boundary,2), \
            round(c_boundary,2), round(d_boundary,2), round(e_boundary,2)
+
+
+GRADE_POINTS = {"S": 10, "A": 9, "B": 8, "C": 7, "D": 6, "E": 5, "F": 0}
 
 
 # ── AUTH ──────────────────────────────────────────────
@@ -96,8 +97,8 @@ def register():
         else:
             users.append({
                 "student_id": reg,
-                "email": email,
-                "password": hash_password(pw)
+                "email":      email,
+                "password":   hash_password(pw)
             })
             save_json(USERS_FILE, users)
             session["student_id"] = reg
@@ -212,6 +213,86 @@ def grades():
 
     return render_template("grades.html",
         student_id=student_id, submissions=submissions)
+
+
+# ── CGPA ──────────────────────────────────────────────
+
+@app.route("/cgpa")
+def cgpa():
+    if "student_id" not in session:
+        return redirect(url_for("login"))
+
+    student_id = session["student_id"]
+    data       = load_json(DATA_FILE)
+
+    student_entries = [e for e in data if e.get("student_id") == student_id]
+    subjects = []
+
+    for entry in student_entries:
+        subject_marks = [
+            e["marks"] for e in data
+            if e["faculty_id"] == entry["faculty_id"] and e["subject"] == entry["subject"]
+        ]
+        mean_marks = round(statistics.mean(subject_marks), 2)
+        sd = round(statistics.stdev(subject_marks), 2) if len(subject_marks) > 1 else 0
+        grade, *_ = compute_grade(entry["marks"], mean_marks, sd)
+
+        subjects.append({
+            "subject": entry["subject"],
+            "grade":   grade,
+            "points":  GRADE_POINTS[grade]
+        })
+
+    return render_template("cgpa.html",
+        student_id=student_id, subjects=subjects)
+
+
+# ── LEADERBOARD ───────────────────────────────────────
+
+@app.route("/leaderboard")
+def leaderboard():
+    if "student_id" not in session:
+        return redirect(url_for("login"))
+
+    data = load_json(DATA_FILE)
+
+    student_scores = {}
+    for entry in data:
+        sid = entry.get("student_id")
+        if not sid:
+            continue
+
+        subject_marks = [
+            e["marks"] for e in data
+            if e["faculty_id"] == entry["faculty_id"] and e["subject"] == entry["subject"]
+        ]
+        mean_marks = round(statistics.mean(subject_marks), 2)
+        sd = round(statistics.stdev(subject_marks), 2) if len(subject_marks) > 1 else 0
+        grade, *_ = compute_grade(entry["marks"], mean_marks, sd)
+
+        if sid not in student_scores:
+            student_scores[sid] = {"points": [], "student_id": sid}
+        student_scores[sid]["points"].append(GRADE_POINTS[grade])
+
+    leaderboard_data = []
+    for sid, val in student_scores.items():
+        avg = round(sum(val["points"]) / len(val["points"]), 2)
+        leaderboard_data.append({
+            "student_id":  sid,
+            "avg_points":  avg,
+            "subjects":    len(val["points"]),
+            "is_me":       sid == session["student_id"]
+        })
+
+    leaderboard_data.sort(key=lambda x: x["avg_points"], reverse=True)
+
+    for i, entry in enumerate(leaderboard_data):
+        entry["rank"] = i + 1
+        entry["display"] = (entry["student_id"] + " (You)") if entry["is_me"] else f"Student #{i+1}"
+
+    return render_template("leaderboard.html",
+        student_id=session["student_id"],
+        leaderboard=leaderboard_data)
 
 
 if __name__ == "__main__":

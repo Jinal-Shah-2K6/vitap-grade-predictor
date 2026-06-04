@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CGPA Calculator — VIT-AP</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0a0a0f; --surface:#13131a; --border:#2a2a3d; --accent:#6c63ff; --success:#00d4aa; --text:#e8e8f0; --muted:#6b6b80; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Space Grotesk',sans-serif; min-height:100vh; }
+  .bg-grid { position:fixed; inset:0; z-index:0; background-image:linear-gradient(rgba(108,99,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(108,99,255,0.02) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; }
+  nav { position:relative; z-index:10; display:flex; align-items:center; justify-content:space-between; padding:20px 40px; border-bottom:1px solid var(--border); background:rgba(10,10,15,0.8); backdrop-filter:blur(12px); }
+  .nav-logo { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:2px; }
+  .nav-right { display:flex; gap:20px; align-items:center; }
+  .reg-badge { background:rgba(108,99,255,0.12); border:1px solid rgba(108,99,255,0.25); border-radius:8px; padding:6px 14px; font-size:13px; font-family:'JetBrains Mono',monospace; color:var(--accent); }
+  .back { color:var(--muted); font-size:13px; text-decoration:none; }
+  .back:hover { color:var(--text); }
+  .main { position:relative; z-index:1; max-width:700px; margin:0 auto; padding:60px 40px; }
+  h1 { font-size:32px; font-weight:700; margin-bottom:8px; }
+  .sub { color:var(--muted); font-size:15px; margin-bottom:40px; }
+  .cgpa-hero { background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:40px; text-align:center; margin-bottom:24px; animation:fadeUp 0.5s ease both; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+  .cgpa-number { font-size:80px; font-weight:700; font-family:'JetBrains Mono',monospace; color:var(--accent); line-height:1; }
+  .cgpa-label { color:var(--muted); font-size:14px; margin-top:8px; }
+  .cgpa-note { font-size:12px; color:var(--muted); margin-top:6px; }
+  .subject-list { display:flex; flex-direction:column; gap:12px; }
+  .subject-row { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 24px; display:flex; justify-content:space-between; align-items:center; animation:fadeUp 0.5s ease both; transition:border-color 0.2s; }
+  .subject-row:hover { border-color:rgba(108,99,255,0.3); }
+  .subj-name { font-size:15px; font-weight:500; }
+  .right { display:flex; align-items:center; gap:16px; }
+  .grade-chip { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:18px; width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
+  .chip-S { background:rgba(255,215,0,0.1); color:#ffd700; }
+  .chip-A { background:rgba(0,212,170,0.1); color:var(--success); }
+  .chip-B { background:rgba(108,99,255,0.1); color:var(--accent); }
+  .chip-C { background:rgba(255,179,71,0.1); color:#ffb347; }
+  .chip-D { background:rgba(255,153,153,0.1); color:#ff9999; }
+  .chip-E { background:rgba(255,101,132,0.1); color:#ff6584; }
+  .chip-F { background:rgba(255,68,68,0.1); color:#ff4444; }
+  .points { font-size:13px; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+  .empty { text-align:center; padding:60px; color:var(--muted); }
+  .empty a { color:var(--accent); text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<nav>
+  <div class="nav-logo">VIT-AP · GRADE PREDICTOR</div>
+  <div class="nav-right">
+    <span class="reg-badge">{{ student_id }}</span>
+    <a href="/dashboard" class="back">← Dashboard</a>
+  </div>
+</nav>
+<div class="main">
+  <h1>CGPA Calculator</h1>
+  <p class="sub">Based on your predicted grades</p>
+
+  {% if subjects %}
+  {% set total_points = subjects | sum(attribute='points') %}
+  {% set cgpa = (total_points / subjects|length) | round(2) %}
+
+  <div class="cgpa-hero">
+    <div class="cgpa-number">{{ cgpa }}</div>
+    <div class="cgpa-label">Predicted CGPA</div>
+    <div class="cgpa-note">Based on {{ subjects|length }} subject{{ 's' if subjects|length != 1 else '' }} · All credits assumed equal</div>
+  </div>
+
+  <div class="subject-list">
+    {% for s in subjects %}
+    <div class="subject-row" style="animation-delay:{{ loop.index0 * 0.07 }}s">
+      <div class="subj-name">{{ s.subject }}</div>
+      <div class="right">
+        <span class="points">{{ s.points }} pts</span>
+        <div class="grade-chip chip-{{ s.grade }}">{{ s.grade }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="empty">
+    <p style="font-size:40px;margin-bottom:16px;">📭</p>
+    <p>No subjects yet.</p>
+    <p style="margin-top:8px;"><a href="/add">Add your first subject →</a></p>
+  </div>
+  {% endif %}
+</div>
+</body>
+</html>
